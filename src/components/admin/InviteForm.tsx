@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Plus, Trash2, Eye, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { FileUpload } from './FileUpload';
 
 interface InviteFormProps {
   defaultValues?: InviteFormData;
@@ -272,6 +273,29 @@ export const InviteForm = ({ defaultValues, onSubmit, isSubmitting, inviteSlug, 
         ))}
       </div>
 
+      {/* Media Uploads */}
+      <div className="bg-white rounded-lg border p-6 space-y-6">
+        <h2 className="text-lg font-medium">Medya</h2>
+        
+        <FileUpload
+          label="Hero Görseli (Opsiyonel)"
+          value={watch('heroImageUrl') || ''}
+          onChange={(url) => setValue('heroImageUrl', url)}
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          type="image"
+          folder="hero-images"
+        />
+
+        <FileUpload
+          label="Arka Plan Müziği (Opsiyonel)"
+          value={watch('audioUrl') || ''}
+          onChange={(url) => setValue('audioUrl', url)}
+          accept="audio/mpeg,audio/wav,audio/ogg,audio/mp3"
+          type="audio"
+          folder="audio"
+        />
+      </div>
+
       {/* Additional */}
       <div className="bg-white rounded-lg border p-6 space-y-4">
         <h2 className="text-lg font-medium">Ek Bilgiler</h2>
@@ -279,11 +303,6 @@ export const InviteForm = ({ defaultValues, onSubmit, isSubmitting, inviteSlug, 
         <div className="space-y-2">
           <Label htmlFor="storyText">Hikaye (Opsiyonel)</Label>
           <Textarea id="storyText" {...register('storyText')} rows={3} />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="audioUrl">Müzik URL (Opsiyonel)</Label>
-          <Input id="audioUrl" {...register('audioUrl')} placeholder="https://..." />
         </div>
       </div>
 
