@@ -55,6 +55,9 @@ export interface InviteData {
   audioUrl?: string;
   themeTokens: ThemeTokens;
   rsvpEnabled: boolean;
+  rsvpDeadline?: string;
+  viewCount?: number;
+  skipEnvelope?: boolean;
 }
 
 // RSVP schema
@@ -88,6 +91,8 @@ export const inviteFormSchema = z.object({
   audioUrl: z.string().optional(),
   themeTokens: themeTokensSchema,
   rsvpEnabled: z.boolean(),
+  rsvpDeadline: z.string().optional().or(z.literal('')),
+  skipEnvelope: z.boolean().optional(),
 });
 
 export type InviteFormData = z.infer<typeof inviteFormSchema>;
@@ -104,8 +109,8 @@ export interface RSVPResponse {
   createdAt: string;
 }
 
-// Template info for registry
-export interface TemplateInfo {
+// Template info for registry (basic version for type compatibility)
+export interface TemplateInfoBasic {
   id: TemplateId;
   name: string;
   description: string;

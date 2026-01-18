@@ -1,8 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { WaxSeal } from './WaxSeal';
 import { Particles } from './Particles';
+import { LightSweep } from './LightSweep';
+import { useEnvelopeSounds } from '@/hooks/useEnvelopeSounds';
 import { cn } from '@/lib/utils';
+import { X } from 'lucide-react';
 
 interface EnvelopeIntroProps {
   brideInitial: string;
@@ -10,7 +13,51 @@ interface EnvelopeIntroProps {
   primaryColor: string;
   audioUrl?: string;
   onComplete: () => void;
+  canSkip?: boolean;
 }
+
+// Convert hex to HSL for theme-aware colors
+const hexToHSL = (hex: string): { h: number; s: number; l: number } => {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+
+  return { h: h * 360, s: s * 100, l: l * 100 };
+};
+
+// Generate theme-aware envelope colors
+const getEnvelopeColors = (primaryColor: string) => {
+  const hsl = hexToHSL(primaryColor);
+  
+  // Use primary hue but adjust for envelope tones
+  const envelopeHue = hsl.h;
+  
+  return {
+    gradientFrom: `hsl(${envelopeHue}, ${Math.min(hsl.s * 0.3, 30)}%, 95%)`,
+    gradientTo: `hsl(${envelopeHue}, ${Math.min(hsl.s * 0.4, 35)}%, 88%)`,
+    flapFrom: `hsl(${envelopeHue}, ${Math.min(hsl.s * 0.5, 40)}%, 85%)`,
+    flapTo: `hsl(${envelopeHue}, ${Math.min(hsl.s * 0.3, 30)}%, 92%)`,
+    shadow: `hsla(${envelopeHue}, ${Math.min(hsl.s * 0.5, 40)}%, 30%, 0.3)`,
+    textColor: `hsl(${envelopeHue}, ${Math.min(hsl.s * 0.6, 50)}%, 25%)`,
+    border: `hsla(${envelopeHue}, ${Math.min(hsl.s * 0.4, 35)}%, 70%, 0.4)`,
+  };
+};
 
 export const EnvelopeIntro = ({
   brideInitial,
@@ -18,14 +65,29 @@ export const EnvelopeIntro = ({
   primaryColor,
   audioUrl,
   onComplete,
+  canSkip = false,
 }: EnvelopeIntroProps) => {
   const [isOpening, setIsOpening] = useState(false);
   const [sealBroken, setSealBroken] = useState(false);
   const [showParticles, setShowParticles] = useState(false);
+  const [showLightSweep, setShowLightSweep] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  
+  const { preloadSounds, playPaperSound, playWaxSound, triggerHaptic } = useEnvelopeSounds();
+  
+  const envelopeColors = getEnvelopeColors(primaryColor);
+
+  // Preload sounds on mount
+  useEffect(() => {
+    preloadSounds();
+  }, [preloadSounds]);
 
   const handleClick = () => {
     if (isOpening) return;
+
+    // Play wax breaking sound and trigger haptic
+    playWaxSound();
+    triggerHaptic('heavy');
 
     // Start music if available
     if (audioUrl && audioRef.current) {
@@ -34,7 +96,19 @@ export const EnvelopeIntro = ({
 
     setIsOpening(true);
     setSealBroken(true);
-    setShowParticles(true);
+    
+    // Light sweep effect
+    setTimeout(() => {
+      setShowLightSweep(true);
+      playPaperSound();
+      triggerHaptic('medium');
+    }, 300);
+    
+    // Particles after flap opens
+    setTimeout(() => {
+      setShowParticles(true);
+      triggerHaptic('light');
+    }, 600);
 
     // Complete animation after delay
     setTimeout(() => {
@@ -42,18 +116,49 @@ export const EnvelopeIntro = ({
     }, 2500);
   };
 
+  const handleSkip = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onComplete();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-b from-amber-50 to-amber-100 overflow-hidden">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
+      style={{
+        background: `linear-gradient(to bottom, ${envelopeColors.gradientFrom}, ${envelopeColors.gradientTo})`,
+      }}
+    >
       {/* Paper texture overlay */}
       <div 
-        className="absolute inset-0 opacity-30 pointer-events-none"
+        className="absolute inset-0 opacity-20 pointer-events-none"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
         }}
       />
 
+      {/* Skip button */}
+      <AnimatePresence>
+        {canSkip && !isOpening && (
+          <motion.button
+            className="absolute top-4 right-4 z-50 p-2 rounded-full bg-white/20 hover:bg-white/40 transition-colors"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleSkip}
+            aria-label="Animasyonu atla"
+          >
+            <X className="w-5 h-5" style={{ color: envelopeColors.textColor }} />
+          </motion.button>
+        )}
+      </AnimatePresence>
+
       {/* Audio element */}
       {audioUrl && <audio ref={audioRef} src={audioUrl} loop />}
+
+      {/* Light sweep effect */}
+      <AnimatePresence>
+        {showLightSweep && <LightSweep isActive={showLightSweep} primaryColor={primaryColor} />}
+      </AnimatePresence>
 
       {/* Particles */}
       <AnimatePresence>
@@ -81,13 +186,10 @@ export const EnvelopeIntro = ({
         >
           {/* Back of envelope */}
           <div 
-            className={cn(
-              "absolute inset-0 rounded-sm",
-              "bg-gradient-to-b from-amber-100 to-amber-200",
-              "shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)]"
-            )}
+            className="absolute inset-0 rounded-sm"
             style={{
-              boxShadow: '0 20px 60px -15px rgba(0,0,0,0.3), inset 0 0 30px rgba(255,255,255,0.3)',
+              background: `linear-gradient(to bottom, ${envelopeColors.gradientFrom}, ${envelopeColors.gradientTo})`,
+              boxShadow: `0 20px 60px -15px ${envelopeColors.shadow}, inset 0 0 30px rgba(255,255,255,0.3)`,
             }}
           />
 
@@ -102,8 +204,11 @@ export const EnvelopeIntro = ({
             transition={{ delay: 0.3, duration: 0.5 }}
           >
             <motion.p 
-              className="text-xl md:text-2xl font-serif text-amber-800 text-center px-4"
-              style={{ fontFamily: 'Playfair Display, serif' }}
+              className="text-xl md:text-2xl font-serif text-center px-4"
+              style={{ 
+                fontFamily: 'Playfair Display, serif',
+                color: envelopeColors.textColor,
+              }}
               initial={{ opacity: 0, y: 10 }}
               animate={isOpening ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.6, duration: 0.5 }}
@@ -114,11 +219,9 @@ export const EnvelopeIntro = ({
 
           {/* Bottom flap (front face of envelope) */}
           <div 
-            className={cn(
-              "absolute inset-0 rounded-sm",
-              "bg-gradient-to-b from-amber-50 to-amber-100"
-            )}
+            className="absolute inset-0 rounded-sm"
             style={{
+              background: `linear-gradient(to bottom, ${envelopeColors.gradientFrom}, ${envelopeColors.flapTo})`,
               clipPath: 'polygon(0 40%, 50% 70%, 100% 40%, 100% 100%, 0 100%)',
               boxShadow: 'inset 0 -20px 30px rgba(0,0,0,0.05)',
             }}
@@ -153,11 +256,9 @@ export const EnvelopeIntro = ({
           >
             {/* Front of flap (visible when closed) */}
             <div
-              className={cn(
-                "absolute inset-0",
-                "bg-gradient-to-b from-amber-200 to-amber-100"
-              )}
+              className="absolute inset-0"
               style={{
+                background: `linear-gradient(to bottom, ${envelopeColors.flapFrom}, ${envelopeColors.flapTo})`,
                 clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
                 backfaceVisibility: 'hidden',
                 boxShadow: 'inset 0 -10px 20px rgba(0,0,0,0.05)',
@@ -166,11 +267,9 @@ export const EnvelopeIntro = ({
 
             {/* Back of flap (visible when open) */}
             <div
-              className={cn(
-                "absolute inset-0",
-                "bg-gradient-to-t from-amber-50 to-amber-100"
-              )}
+              className="absolute inset-0"
               style={{
+                background: `linear-gradient(to top, ${envelopeColors.gradientFrom}, ${envelopeColors.flapTo})`,
                 clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
                 transform: 'rotateX(180deg)',
                 backfaceVisibility: 'hidden',
@@ -199,7 +298,10 @@ export const EnvelopeIntro = ({
 
           {/* Decorative border */}
           <div 
-            className="absolute inset-0 border-2 border-amber-300/30 rounded-sm pointer-events-none"
+            className="absolute inset-0 rounded-sm pointer-events-none"
+            style={{
+              border: `2px solid ${envelopeColors.border}`,
+            }}
           />
         </motion.div>
 
@@ -207,7 +309,8 @@ export const EnvelopeIntro = ({
         <AnimatePresence>
           {!isOpening && (
             <motion.p
-              className="absolute -bottom-12 left-1/2 -translate-x-1/2 text-amber-700/70 text-sm whitespace-nowrap"
+              className="absolute -bottom-12 left-1/2 -translate-x-1/2 text-sm whitespace-nowrap"
+              style={{ color: `${envelopeColors.textColor}99` }}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
