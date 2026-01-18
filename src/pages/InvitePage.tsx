@@ -42,7 +42,7 @@ const InvitePage = () => {
       }
 
       // Increment view count (fire and forget)
-      supabase.rpc('increment_view_count', { invite_slug: slug }).then(() => {}).catch(() => {});
+      supabase.rpc('increment_view_count', { invite_slug: slug }).then(() => {}, () => {});
 
       const themeTokens = data.theme_tokens as { primaryColor?: string; background?: string; fontPreset?: string } || {};
       
