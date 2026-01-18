@@ -29,8 +29,10 @@ export type Database = {
           id: string
           map_url: string | null
           published: boolean
+          rsvp_deadline: string | null
           rsvp_enabled: boolean
           schedule_items: Json | null
+          skip_envelope: boolean | null
           slug: string
           story_text: string | null
           template_id: Database["public"]["Enums"]["template_type"]
@@ -38,6 +40,7 @@ export type Database = {
           updated_at: string
           venue_address: string
           venue_name: string
+          view_count: number | null
         }
         Insert: {
           audio_url?: string | null
@@ -53,8 +56,10 @@ export type Database = {
           id?: string
           map_url?: string | null
           published?: boolean
+          rsvp_deadline?: string | null
           rsvp_enabled?: boolean
           schedule_items?: Json | null
+          skip_envelope?: boolean | null
           slug: string
           story_text?: string | null
           template_id?: Database["public"]["Enums"]["template_type"]
@@ -62,6 +67,7 @@ export type Database = {
           updated_at?: string
           venue_address: string
           venue_name: string
+          view_count?: number | null
         }
         Update: {
           audio_url?: string | null
@@ -77,8 +83,10 @@ export type Database = {
           id?: string
           map_url?: string | null
           published?: boolean
+          rsvp_deadline?: string | null
           rsvp_enabled?: boolean
           schedule_items?: Json | null
+          skip_envelope?: boolean | null
           slug?: string
           story_text?: string | null
           template_id?: Database["public"]["Enums"]["template_type"]
@@ -86,6 +94,7 @@ export type Database = {
           updated_at?: string
           venue_address?: string
           venue_name?: string
+          view_count?: number | null
         }
         Relationships: []
       }
@@ -162,6 +171,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_view_count: {
+        Args: { invite_slug: string }
+        Returns: undefined
       }
       is_admin_email: { Args: { _user_id: string }; Returns: boolean }
     }

@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import Index from "./pages/Index";
 import DemoPage from "./pages/DemoPage";
 import InvitePage from "./pages/InvitePage";
@@ -21,24 +22,27 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/demo/:templateId" element={<DemoPage />} />
-            <Route path="/i/:slug" element={<InvitePage />} />
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<AdminInvites />} />
-              <Route path="invites" element={<AdminInvites />} />
-              <Route path="invites/new" element={<AdminInviteNew />} />
-              <Route path="invites/:id" element={<AdminInviteEdit />} />
-              <Route path="invites/:id/rsvps" element={<AdminRSVPs />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <ErrorBoundary>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/demo/:templateId" element={<DemoPage />} />
+              <Route path="/templates" element={<Index />} />
+              <Route path="/i/:slug" element={<InvitePage />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminInvites />} />
+                <Route path="invites" element={<AdminInvites />} />
+                <Route path="invites/new" element={<AdminInviteNew />} />
+                <Route path="invites/:id" element={<AdminInviteEdit />} />
+                <Route path="invites/:id/rsvps" element={<AdminRSVPs />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </ErrorBoundary>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>

@@ -7,15 +7,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Trash2, Eye, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 interface InviteFormProps {
   defaultValues?: InviteFormData;
   onSubmit: (data: InviteFormData) => Promise<void>;
   isSubmitting: boolean;
+  inviteSlug?: string;
+  isPublished?: boolean;
 }
 
-export const InviteForm = ({ defaultValues, onSubmit, isSubmitting }: InviteFormProps) => {
+export const InviteForm = ({ defaultValues, onSubmit, isSubmitting, inviteSlug, isPublished }: InviteFormProps) => {
+  const [showPreview, setShowPreview] = useState(false);
+  
   const {
     register,
     handleSubmit,
@@ -47,11 +53,15 @@ export const InviteForm = ({ defaultValues, onSubmit, isSubmitting }: InviteForm
         fontPreset: 'serif',
       },
       rsvpEnabled: true,
+      rsvpDeadline: '',
+      skipEnvelope: false,
     },
   });
 
   const scheduleItems = watch('scheduleItems') || [];
   const themeTokens = watch('themeTokens');
+  const currentSlug = watch('slug');
+  const currentPublished = watch('published');
 
   const addScheduleItem = () => {
     setValue('scheduleItems', [...scheduleItems, { time: '', title: '', note: '' }]);
@@ -85,6 +95,30 @@ export const InviteForm = ({ defaultValues, onSubmit, isSubmitting }: InviteForm
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 max-w-2xl">
+      {/* Preview Button for existing invites */}
+      {inviteSlug && (
+        <div className="flex gap-2 p-4 bg-amber-50 rounded-lg border border-amber-200">
+          <div className="flex-1">
+            <p className="text-sm text-amber-800 font-medium">Davetiye Önizleme</p>
+            <p className="text-xs text-amber-600">Değişiklikleri görmek için önce kaydedin.</p>
+          </div>
+          <Link to={`/demo/${watch('templateId')}`} target="_blank">
+            <Button type="button" variant="outline" size="sm" className="gap-2">
+              <Eye className="w-4 h-4" />
+              Şablon Önizle
+            </Button>
+          </Link>
+          {currentPublished && (
+            <a href={`/i/${currentSlug}`} target="_blank" rel="noopener noreferrer">
+              <Button type="button" variant="outline" size="sm" className="gap-2">
+                <ExternalLink className="w-4 h-4" />
+                Canlı Görüntüle
+              </Button>
+            </a>
+          )}
+        </div>
+      )}
+
       {/* Basic Info */}
       <div className="bg-white rounded-lg border p-6 space-y-4">
         <h2 className="text-lg font-medium">Temel Bilgiler</h2>
@@ -271,6 +305,22 @@ export const InviteForm = ({ defaultValues, onSubmit, isSubmitting }: InviteForm
             <p className="text-sm text-gray-500">Katılım formunu aktif et</p>
           </div>
           <Switch checked={watch('rsvpEnabled')} onCheckedChange={(v) => setValue('rsvpEnabled', v)} />
+        </div>
+
+        {watch('rsvpEnabled') && (
+          <div className="space-y-2 pl-4 border-l-2 border-amber-200">
+            <Label htmlFor="rsvpDeadline">RSVP Son Tarihi (Opsiyonel)</Label>
+            <Input id="rsvpDeadline" type="date" {...register('rsvpDeadline')} />
+            <p className="text-xs text-gray-500">Bu tarihten sonra RSVP formu kapanır</p>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between">
+          <div>
+            <Label>Zarf Animasyonunu Atla</Label>
+            <p className="text-sm text-gray-500">Kullanıcılar animasyonu atlayabilir</p>
+          </div>
+          <Switch checked={watch('skipEnvelope') || false} onCheckedChange={(v) => setValue('skipEnvelope', v)} />
         </div>
       </div>
 
